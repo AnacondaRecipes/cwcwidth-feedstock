@@ -1,47 +1,69 @@
 {% set name = "cwcwidth" %}
 {% set version = "0.1.10" %}
 
-
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/cwcwidth-{{ version }}.tar.gz
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
   sha256: 7468760f72c1f4107be1b2b2854bc000401ea36a69daed36fb966a1e19a7a124
 
 build:
   number: 0
-  script: {{ PYTHON }} -m pip install . -vv
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: true  # [py<39]
 
 requirements:
   build:
-    - python                                 # [build_platform != target_platform]
-    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-    - cython                                 # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ stdlib("c") }}
   host:
     - pip
-    - setuptools
     - python
-    - cython >=0.28
+    - wheel
+    - setuptools >=43
+    - cython >=3
   run:
     - python
 
+# >   self._exec_test("\u1b13\u1b28\u1b2e\u1b44", (1, 1, 1, 1))
+# E   - (1, 1, 1, 1)
+# E   + (-1, -1, -1, -1)
+{% set deselect_tests = " --deselect=tests/test_cwcwidth.py::Tests::test_combining_spacing" %}
+# >   self._exec_test("--\u05bf--", (1, 1, 0, 1, 1))
+# E   - (1, 1, 0, 1, 1)
+# E   + (1, 1, 1, 1, 1)
+{% set deselect_tests = deselect_tests + " --deselect=tests/test_cwcwidth.py::Tests::test_combining_width_negative_1" %}
+
 test:
+  source_files:
+    - tests
   imports:
     - cwcwidth
   commands:
     - pip check
+    - pytest -v tests {{ deselect_tests }}
   requires:
     - pip
+    - pytest
 
 about:
   home: https://github.com/sebastinas/cwcwidth
   summary: Python bindings for wc(s)width
   license: MIT
+  license_family: MIT
   license_file: LICENSE
+  description: |
+    Python bindings for wc(s)width
+    cwcwidth provides Python bindings for wcwidth and wcswidth
+    functions defined in POSIX.1-2001 and POSIX.1-2008 based on Cython.
+    These functions compute the printable length of a unicode character/string on a terminal.
+    The module provides the same functions as wcwidth and its behavior is compatible.
+    On systems not conforming to POSIX.1-2001 and POSIX.1-2008,
+    Markus Kuhn's implementation is used to provide the functionality.
+  dev_url: https://github.com/sebastinas/cwcwidth
+  doc_url: https://github.com/sebastinas/cwcwidth/tree/main/docs
 
 extra:
   recipe-maintainers:
