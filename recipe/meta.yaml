@@ -1,16 +1,8 @@
 {% set name = "cwcwidth" %}
 {% set version = "0.1.12" %}
-{% set deselect_tests = " --deselect=tests/test_cwcwidth.py::Tests::test_combining_spacing" %}
-{% set deselect_tests = 'deselect_tests + " --deselect=tests/test_cwcwidth.py::Tests::test_combining_width_negative_1"' %}
 
-# >   self._exec_test("\u1b13\u1b28\u1b2e\u1b44", (1, 1, 1, 1))
-# E   - (1, 1, 1, 1)
-# E   + (-1, -1, -1, -1)
-# >   self._exec_test("--\u05bf--", (1, 1, 0, 1, 1))
-# E   - (1, 1, 0, 1, 1)
-# E   + (1, 1, 1, 1, 1)
 package:
-  name: {{ name|lower }}
+  name: {{ name }}
   version: {{ version }}
 
 source:
@@ -20,20 +12,30 @@ source:
 build:
   number: 0
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  skip: true  # [py<39]
+  # In pyproject.toml, the minimum version of Python is 3.11.
+  skip: true  # [py<311]
 
 requirements:
   build:
-    - {{ compiler('c') }}
     - {{ stdlib("c") }}
+    - {{ compiler('c') }}
   host:
     - pip
     - python
     - wheel
     - setuptools >=43
-    - cython >=3
+    - cython >=3.1
   run:
     - python
+
+# >   self._exec_test("\u1b13\u1b28\u1b2e\u1b44", (1, 1, 1, 1))
+# E   - (1, 1, 1, 1)
+# E   + (-1, -1, -1, -1)
+# >   self._exec_test("--\u05bf--", (1, 1, 0, 1, 1))
+# E   - (1, 1, 0, 1, 1)
+# E   + (1, 1, 1, 1, 1)
+{% set deselect_tests = " not test_combining_spacing" %}
+{% set deselect_tests = deselect_tests + " and not test_combining_width_negative_1" %}  # [osx]
 
 test:
   source_files:
@@ -42,7 +44,7 @@ test:
     - cwcwidth
   commands:
     - pip check
-    - pytest -v tests {{ deselect_tests }}
+    - pytest -v tests -k "{{ deselect_tests }}"
   requires:
     - pip
     - pytest
